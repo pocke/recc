@@ -22,7 +22,12 @@ func main() {
 func Main(args []string) error {
 	cmd := args[1]
 	cmdArgs := args[2:]
-	c := exec.Command(cmd, cmdArgs...)
+	var c *exec.Cmd
+	if strings.Contains(cmd, " ") && len(cmdArgs) == 0 {
+		c = exec.Command("bash", "-c", cmd)
+	} else {
+		c = exec.Command(cmd, cmdArgs...)
+	}
 	cmdLine := fmt.Sprintf("$ %s %s\n", cmd, strings.Join(cmdArgs, " "))
 	r := NewRecorder(os.Stdout, os.Stderr, cmdLine)
 	c.Stdin = os.Stdin
