@@ -20,10 +20,10 @@ Usage
 ```sh
 # Record `ls -la`
 $ recc ls -la
-# Same **Not Implemented**
+# Same
 $ recc 'ls -la'
 
-# Record with a glob **Not Implemented**
+# Record with a glob
 $ recc 'ls -la *'
 
 # Record with StdErr (default: off) **Not Implemented**
