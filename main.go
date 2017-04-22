@@ -16,12 +16,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
-
 }
 
 func Main(args []string) error {
-	cmd := args[1]
-	cmdArgs := args[2:]
+	opt, err := OptionParse(args)
+	if err != nil {
+		return err
+	}
+
+	cmd := opt.Args[0]
+	cmdArgs := opt.Args[1:]
 	var c *exec.Cmd
 	if strings.Contains(cmd, " ") && len(cmdArgs) == 0 {
 		c = exec.Command("bash", "-c", cmd)
@@ -34,7 +38,7 @@ func Main(args []string) error {
 	c.Stdout = r.Stdout
 	c.Stderr = r.Stderr
 
-	err := c.Run()
+	err = c.Run()
 	if err != nil {
 		return err
 	}
