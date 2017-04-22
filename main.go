@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -16,12 +17,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
-
 }
 
 func Main(args []string) error {
-	cmd := args[1]
-	cmdArgs := args[2:]
+	opt, err := OptionParse(args)
+	if err != nil {
+		return err
+	}
+
+	cmd := opt.Args[0]
+	cmdArgs := opt.Args[1:]
 	var c *exec.Cmd
 	if strings.Contains(cmd, " ") && len(cmdArgs) == 0 {
 		c = exec.Command("bash", "-c", cmd)
@@ -34,11 +39,16 @@ func Main(args []string) error {
 	c.Stdout = r.Stdout
 	c.Stderr = r.Stderr
 
-	err := c.Run()
+	err = c.Run()
 	if err != nil {
 		return err
 	}
-	return clipboard.WriteAll(r.String())
+
+	if opt.Output != "" {
+		return ioutil.WriteFile(opt.Output, r.Bytes(), 0644)
+	} else {
+		return clipboard.WriteAll(r.String())
+	}
 }
 
 type Recorder struct {
@@ -60,6 +70,10 @@ func NewRecorder(stdout, stderr io.Writer, initial string) *Recorder {
 
 func (r *Recorder) String() string {
 	return r.record.String()
+}
+
+func (r *Recorder) Bytes() []byte {
+	return r.record.Bytes()
 }
 
 type Pipe struct {

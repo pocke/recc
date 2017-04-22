@@ -29,7 +29,7 @@ $ recc 'ls -la *'
 # Record with StdErr (default: off) **Not Implemented**
 $ recc --stderr curl https://example.com
 
-# Specify output (default: clipboard) **Not Implemented**
+# Specify output (default: clipboard)
 $ recc --output /tmp/recc.out ls -la
 ```
 
