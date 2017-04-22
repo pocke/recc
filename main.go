@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -42,7 +43,12 @@ func Main(args []string) error {
 	if err != nil {
 		return err
 	}
-	return clipboard.WriteAll(r.String())
+
+	if opt.Output != "" {
+		return ioutil.WriteFile(opt.Output, r.Bytes(), 0644)
+	} else {
+		return clipboard.WriteAll(r.String())
+	}
 }
 
 type Recorder struct {
@@ -64,6 +70,10 @@ func NewRecorder(stdout, stderr io.Writer, initial string) *Recorder {
 
 func (r *Recorder) String() string {
 	return r.record.String()
+}
+
+func (r *Recorder) Bytes() []byte {
+	return r.record.Bytes()
 }
 
 type Pipe struct {
