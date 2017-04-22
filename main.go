@@ -37,7 +37,11 @@ func Main(args []string) error {
 	r := NewRecorder(os.Stdout, os.Stderr, cmdLine)
 	c.Stdin = os.Stdin
 	c.Stdout = r.Stdout
-	c.Stderr = r.Stderr
+	if opt.Stderr {
+		c.Stderr = r.Stderr
+	} else {
+		c.Stderr = os.Stderr
+	}
 
 	err = c.Run()
 	if err != nil {
