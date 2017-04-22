@@ -26,7 +26,7 @@ $ recc 'ls -la'
 # Record with a glob
 $ recc 'ls -la *'
 
-# Record with StdErr (default: off) **Not Implemented**
+# Record with StdErr (default: off)
 $ recc --stderr curl https://example.com
 
 # Specify output (default: clipboard)
