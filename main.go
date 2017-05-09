@@ -43,10 +43,7 @@ func Main(args []string) error {
 		c.Stderr = os.Stderr
 	}
 
-	err = c.Run()
-	if err != nil {
-		return err
-	}
+	c.Run()
 
 	if opt.Output != "" {
 		return ioutil.WriteFile(opt.Output, r.Bytes(), 0644)
