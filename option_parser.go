@@ -5,6 +5,7 @@ import "errors"
 type Option struct {
 	Output string
 	Stderr bool
+	Tty    bool
 
 	Args []string
 }
@@ -16,6 +17,7 @@ Usage: reec [OPTION]... COMMAND [COMMAND_ARGS]...
 Options:
 	-o, --output FILE_NAME output file name
 	--stderr               include Standard Error to result
+	--tty                  TTY
 	--help                 Display this message
 `)
 
@@ -44,6 +46,8 @@ func OptionParse(args []string) (*Option, error) {
 			o.Output = args[ptr]
 		case "--stderr":
 			o.Stderr = true
+		case "--tty", "-t":
+			o.Tty = true
 		case "--help":
 			return nil, errHelp
 		default:

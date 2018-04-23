@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/kr/pty"
 )
 
 func main() {
@@ -33,8 +34,50 @@ func Main(args []string) error {
 	} else {
 		c = exec.Command(cmd, cmdArgs...)
 	}
+
+	var out string
+	if opt.Tty {
+		var err error
+		out, err = WithTty(c, opt)
+		if err != nil {
+			return err
+		}
+	} else {
+		out = WithoutTty(c, opt)
+	}
+
 	cmdLine := fmt.Sprintf("$ %s %s\n", cmd, strings.Join(cmdArgs, " "))
-	r := NewRecorder(os.Stdout, os.Stderr, cmdLine)
+	out = cmdLine + out
+
+	if opt.Output != "" {
+		return ioutil.WriteFile(opt.Output, []byte(out), 0644)
+	} else {
+		return clipboard.WriteAll(out)
+	}
+}
+
+func WithTty(c *exec.Cmd, opt *Option) (string, error) {
+	t, err := pty.Start(c)
+	if err != nil {
+		return "", err
+	}
+	defer t.Close()
+	go func() {
+		// io.Copy(t, os.Stdin)
+		t.Write([]byte{4})
+	}()
+	if err := c.Wait(); err != nil {
+		return "", err
+	}
+	b := bytes.NewBuffer([]byte{})
+	io.Copy(b, t)
+	str := b.String()
+	fmt.Print(str)
+	return str, nil
+}
+
+func WithoutTty(c *exec.Cmd, opt *Option) string {
+	r := NewRecorder(os.Stdout, os.Stderr, "")
 	c.Stdin = os.Stdin
 	c.Stdout = r.Stdout
 	if opt.Stderr {
@@ -42,14 +85,9 @@ func Main(args []string) error {
 	} else {
 		c.Stderr = os.Stderr
 	}
-
 	c.Run()
 
-	if opt.Output != "" {
-		return ioutil.WriteFile(opt.Output, r.Bytes(), 0644)
-	} else {
-		return clipboard.WriteAll(r.String())
-	}
+	return r.String()
 }
 
 type Recorder struct {
