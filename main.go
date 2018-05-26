@@ -8,22 +8,25 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"github.com/atotto/clipboard"
 	"github.com/kr/pty"
 )
 
 func main() {
-	if err := Main(os.Args); err != nil {
+	exitStatus, err := Main(os.Args)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)
-		os.Exit(1)
+		os.Exit(exitStatus)
 	}
+	os.Exit(exitStatus)
 }
 
-func Main(args []string) error {
+func Main(args []string) (int, error) {
 	opt, err := OptionParse(args)
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	cmd := opt.Args[0]
@@ -35,24 +38,42 @@ func Main(args []string) error {
 		c = exec.Command(cmd, cmdArgs...)
 	}
 
-	var out string
-	if opt.Tty {
-		var err error
-		out, err = WithTty(c, opt)
-		if err != nil {
-			return err
+	exitStatus := 0
+	out, err := Exec(c, opt)
+	if err != nil {
+		switch err := err.(type) {
+		case *exec.ExitError:
+			if s, isWaitStatus := err.Sys().(syscall.WaitStatus); isWaitStatus {
+				exitStatus = s.ExitStatus()
+			} else {
+				panic("Recc does not support this OS.")
+			}
+		case *exec.Error:
+			if err.Err == exec.ErrNotFound {
+				return 127, err
+			} else {
+				return 1, err
+			}
+		default:
+			return 1, err
 		}
-	} else {
-		out = WithoutTty(c, opt)
 	}
 
 	cmdLine := fmt.Sprintf("$ %s %s\n", cmd, strings.Join(cmdArgs, " "))
 	out = cmdLine + out
 
 	if opt.Output != "" {
-		return ioutil.WriteFile(opt.Output, []byte(out), 0644)
+		return exitStatus, ioutil.WriteFile(opt.Output, []byte(out), 0644)
 	} else {
-		return clipboard.WriteAll(out)
+		return exitStatus, clipboard.WriteAll(out)
+	}
+}
+
+func Exec(c *exec.Cmd, opt *Option) (string, error) {
+	if opt.Tty {
+		return WithTty(c, opt)
+	} else {
+		return WithoutTty(c, opt)
 	}
 }
 
@@ -76,7 +97,7 @@ func WithTty(c *exec.Cmd, opt *Option) (string, error) {
 	return str, nil
 }
 
-func WithoutTty(c *exec.Cmd, opt *Option) string {
+func WithoutTty(c *exec.Cmd, opt *Option) (string, error) {
 	r := NewRecorder(os.Stdout, os.Stderr, "")
 	c.Stdin = os.Stdin
 	c.Stdout = r.Stdout
@@ -85,9 +106,9 @@ func WithoutTty(c *exec.Cmd, opt *Option) string {
 	} else {
 		c.Stderr = os.Stderr
 	}
-	c.Run()
+	err := c.Run()
 
-	return r.String()
+	return r.String(), err
 }
 
 type Recorder struct {
